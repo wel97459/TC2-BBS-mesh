@@ -13,7 +13,7 @@ from command_handlers import (
 from db_operations import add_bulletin, add_mail, delete_bulletin, delete_mail, get_db_connection, add_channel
 from js8call_integration import handle_js8call_command, handle_js8call_steps, handle_group_message_selection
 from utils import get_user_state, get_node_short_name, get_node_id_from_num, send_message
-
+from LLM_integation import handle_LLM_command, handle_LLM_steps
 main_menu_handlers = {
     "q": handle_quick_help_command,
     "b": lambda sender_id, interface: handle_help_command(sender_id, interface, 'bbs'),
@@ -34,6 +34,7 @@ utilities_menu_handlers = {
     "s": handle_stats_command,
     "f": handle_fortune_command,
     "w": handle_wall_of_shame_command,
+    "l": handle_LLM_command,
     "x": handle_help_command
 }
 
@@ -168,6 +169,8 @@ def process_message(sender_id, message, interface, is_sync_message=False):
                     handle_bb_steps(sender_id, message, 3, state, interface, bbs_nodes)
                 elif command == 'JS8CALL_MENU':
                     handle_js8call_steps(sender_id, message, step, interface, state)
+                elif command == 'LLM_CHAT':
+                    handle_LLM_steps(sender_id, message, step, interface)
                 elif command == 'GROUP_MESSAGES':
                     handle_group_message_selection(sender_id, message, step, state, interface)
                 else:

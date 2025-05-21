@@ -11,6 +11,7 @@ from db_operations import (
     get_mail, get_mail_content,
     add_channel, get_channels, get_sender_id_by_mail_id
 )
+
 from utils import (
     get_node_id_from_num, get_node_info,
     get_node_short_name, send_message,
@@ -52,6 +53,8 @@ def build_menu(items, menu_name):
             menu_str += "[F]ortune\n"
         elif item.strip() == 'W':
             menu_str += "[W]all of Shame\n"
+        elif item.strip() == 'L':
+            menu_str += "[L]LM Chat\n"
     return menu_str
 
 def handle_help_command(sender_id, interface, menu_name=None):
