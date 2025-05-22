@@ -3,9 +3,19 @@ from groq import Groq
 import requests
 import re
 from meshtastic import BROADCAST_NUM
+import configparser
+import logging
 
 from command_handlers import handle_help_command
 from utils import send_message, update_user_state
+
+config_file = 'config.ini'
+
+class llm_config:
+    def __init__(self):
+        self.config = configparser.ConfigParser()
+        self.config.read(config_file)
+        self.API_key = self.config.get('groq_llm', 'api', fallback=None),
 
 class NodeChatLLMHistory:
     def __init__(self):
@@ -24,9 +34,9 @@ class NodeChatLLMHistory:
             del self.node_history[sender_node_id]
 
 node_llm_chat_history = NodeChatLLMHistory()
+config = llm_config()
 
-api_key = "";
-client = Groq(api_key=api_key)
+client = Groq(api_key=config.API_key)
 
 def split_into_chunks(
     s: str,
@@ -108,6 +118,9 @@ def send_LLM_reply(interface, user_message, sender_node_id):
         send_message(chunk, sender_node_id, interface)
 
 def handle_LLM_command(sender_id, interface):
+    for node_id, node in interface.nodes.items():
+        logging.info(f"nodes:{node_id}, shortName:{node['user']['shortName']}, longName:{node['user']['longName']}, SNR:{node['snr']}, lastHeard:{node['lastHeard']}")
+
     response = "LLM Chat\nUse the word END to end the chat."
     send_message(response, sender_id, interface)
     update_user_state(sender_id, {'command': 'LLM_CHAT', 'step': 1})
