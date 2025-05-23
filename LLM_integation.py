@@ -45,7 +45,7 @@ def send_LLM_reply(interface, user_message, sender_node_id):
     destid = get_node_id_from_num(sender_node_id, interface)
     longName = get_node_long_name(destid, interface)
     msg=[
-        {"role": "system", "content": "You are a helpful assistant, bandwidth is limited so keep the replys short. The users handel is {longName}."}
+        {"role": "system", "content": f"You are a helpful assistant, bandwidth is limited so keep the replys short. The users handel is {longName}."}
     ]
 
     node_llm_chat_history.send({"role": "user", "content": user_message}, sender_node_id)
