@@ -15,7 +15,10 @@ class llm_config:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
-        self.API_key = self.config.get('groq_llm', 'api', fallback=None),
+        self.API_key = self.config.get('groq_llm', 'api', fallback='')
+    def get_api(self):
+        return self.API_key
+
 
 class NodeChatLLMHistory:
     def __init__(self):
@@ -34,10 +37,9 @@ class NodeChatLLMHistory:
             del self.node_history[sender_node_id]
 
 node_llm_chat_history = NodeChatLLMHistory()
-config = llm_config()
+config_llm = llm_config()
 
-client = Groq(api_key=config.API_key)
-
+client = Groq(api_key=f"{config_llm.get_api()}")
 
 def send_LLM_reply(interface, user_message, sender_node_id):
     destid = get_node_id_from_num(sender_node_id, interface)
