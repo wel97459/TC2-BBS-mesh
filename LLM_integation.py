@@ -7,7 +7,7 @@ import configparser
 import logging
 
 from command_handlers import handle_help_command
-from utils import send_message, update_user_state
+from utils import send_message, update_user_state, get_node_id_from_num, get_node_long_name
 
 config_file = 'config.ini'
 
@@ -38,63 +38,12 @@ config = llm_config()
 
 client = Groq(api_key=config.API_key)
 
-def split_into_chunks(
-    s: str,
-    max_bytes: int = 200,
-    split_chars: list = None
-) -> list:
-    """
-    Splits a string into chunks of up to max_bytes, trying to split at contextually
-    appropriate points (spaces, punctuation). Maintains valid UTF-8 encoding.
-    """
-    if split_chars is None:
-        split_chars = [' ', '\n', '.', ',', '!', '?', ';', ':', '\t', '(', ')', '[', ']', '{', '}']
-
-    split_bytes = [ord(c) for c in split_chars if len(c.encode('utf-8')) == 1]
-    encoded = s.encode('utf-8')
-    chunks = []
-    start = 0
-    total_bytes = len(encoded)
-
-    while start < total_bytes:
-        end = min(start + max_bytes, total_bytes)
-        
-        # Ensure we don't check beyond the byte array
-        safe_end = min(end, total_bytes - 1)
-        
-        # Backtrack to avoid splitting multi-byte characters
-        while safe_end > start and (encoded[safe_end] & 0b11000000) == 0b10000000:
-            safe_end -= 1
-
-        # Find last valid split character
-        split_pos = -1
-        for i in range(min(safe_end, total_bytes-1), start-1, -1):
-            if encoded[i] in split_bytes:
-                split_pos = i
-                break
-
-        # Determine actual chunk end
-        if split_pos != -1:
-            actual_end = split_pos + 1
-        else:
-            actual_end = safe_end
-
-        # Final validation to prevent empty/infinite loops
-        if actual_end <= start:
-            actual_end = min(start + max_bytes, total_bytes)
-            while actual_end > start and actual_end < total_bytes and (encoded[actual_end] & 0b11000000) == 0b10000000:
-                actual_end -= 1
-            actual_end = max(actual_end, start + 1)
-
-        chunks.append(encoded[start:actual_end].decode('utf-8'))
-        start = actual_end
-
-    return chunks
-
 
 def send_LLM_reply(interface, user_message, sender_node_id):
+    destid = get_node_id_from_num(sender_node_id, interface)
+    longName = get_node_long_name(destid, interface)
     msg=[
-        {"role": "system", "content": "You are a helpful assistant, bandwidth is limited so keep the replys short."}
+        {"role": "system", "content": "You are a helpful assistant, bandwidth is limited so keep the replys short. The users handel is {longName}."}
     ]
 
     node_llm_chat_history.send({"role": "user", "content": user_message}, sender_node_id)
@@ -112,17 +61,12 @@ def send_LLM_reply(interface, user_message, sender_node_id):
         )
     
     node_llm_chat_history.send({"role": "assistant", "content": completion.choices[0].message.content}, sender_node_id)
-
-    chunks = split_into_chunks(completion.choices[0].message.content)
-    for i, chunk in enumerate(chunks):
-        send_message(chunk, sender_node_id, interface)
+    send_message(completion.choices[0].message.content, sender_node_id, interface)
 
 def handle_LLM_command(sender_id, interface):
-    for node_id, node in interface.nodes.items():
-        logging.info(f"nodes:{node_id}, shortName:{node['user']['shortName']}, longName:{node['user']['longName']}, SNR:{node['snr']}, lastHeard:{node['lastHeard']}")
-
-    response = "LLM Chat\nUse the word END to end the chat."
+    response = "LLM Chat\nUse the word END to end the chat.\nAnd the word clear to start a new chat history."
     send_message(response, sender_id, interface)
+    send_LLM_reply(interface, "*User has enter chat.", sender_id)
     update_user_state(sender_id, {'command': 'LLM_CHAT', 'step': 1})
 
 def handle_LLM_steps(sender_id, message, step, interface):
@@ -132,7 +76,7 @@ def handle_LLM_steps(sender_id, message, step, interface):
             node_llm_chat_history.delete_history(sender_id)
             handle_help_command(sender_id, interface, 'utilities')
         elif message.lower() == "clear":
-            send_LLM_reply(interface, "*user is clearing chat history.", sender_id)
+            send_LLM_reply(interface, "*User is clearing chat history.", sender_id)
             node_llm_chat_history.delete_history(sender_id)
         else:
             send_LLM_reply(interface, message, sender_id)
