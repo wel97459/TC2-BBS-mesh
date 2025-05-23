@@ -108,6 +108,10 @@ def split_into_chunks(
     start = 0
     total_bytes = len(encoded)
 
+    if total_bytes < 128:
+        chunks.append(encoded.decode('utf-8'))
+        return chunks
+
     while start < total_bytes:
         end = min(start + max_bytes, total_bytes)
         
